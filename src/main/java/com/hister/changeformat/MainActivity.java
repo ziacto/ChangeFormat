@@ -38,13 +38,23 @@ public class MainActivity extends Activity {
     int pass;
     int enteredPass;
     boolean dialogPassIsOpen;
+    public AlertDialog d;
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle icicle) {
+        super.onCreate(icicle);
         setContentView(R.layout.activity_main);
         setElementsId();
 
+        if (icicle != null){
+            dialogPassIsOpen = icicle.getBoolean("dialogPassIsOpen", false);
+            if (dialogPassIsOpen) {
+                btnLockClicked();
+                input.setText(icicle.getString("etInput"));
+            }
+        }
+
         SharedPreferences setting = getSharedPreferences("Setting", 0);
+        SharedPreferences.Editor editorSetting = setting.edit();
         etDir.setText(setting.getString("etDir", ""));
         nameFolder = etDir.getText().toString();
         if (nameFolder.equals("")) {
@@ -97,7 +107,6 @@ public class MainActivity extends Activity {
         etDir = (EditText) findViewById(R.id.etDir);
         btnLock = (Button) findViewById(R.id.btnLock);
         pass = 2304;
-        dialogPassIsOpen = false;
     }
 
 
@@ -106,7 +115,7 @@ public class MainActivity extends Activity {
         nameFolder = etDir.getText().toString();
         File sdCard = Environment.getExternalStorageDirectory();
         File dir = new File(sdCard, "/" + nameFolder);
-        if (!dir.exists() && !dir.isDirectory()) {
+        if ((!dir.exists() && !dir.isDirectory()) || nameFolder.equals("")) {
             return;
         }
         for (File f : dir.listFiles()) {
@@ -135,8 +144,8 @@ public class MainActivity extends Activity {
         nameFolder = etDir.getText().toString();
         File sdCard = Environment.getExternalStorageDirectory();
         File dir = new File(sdCard, "/" + nameFolder);
-        if (!dir.exists() && !dir.isDirectory()) {
-            Toast.makeText(MainActivity.this, "Folder doesn't exist", Toast.LENGTH_LONG).show();
+        if ((!dir.exists() && !dir.isDirectory()) || nameFolder.equals("")) {
+                Toast.makeText(MainActivity.this, "Folder doesn't exist", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -171,7 +180,7 @@ public class MainActivity extends Activity {
         nameFolder = etDir.getText().toString();
         File sdCard = Environment.getExternalStorageDirectory();
         File dir = new File(sdCard, "/he");
-        if (!dir.exists() && !dir.isDirectory()) {
+        if ((!dir.exists() && !dir.isDirectory()) || nameFolder.equals("")) {
             Toast.makeText(MainActivity.this, "Folder doesn't exist", Toast.LENGTH_LONG).show();
             return;
         }
@@ -206,14 +215,13 @@ public class MainActivity extends Activity {
     }
 
     public void btnLockClicked() {
-        dialogPassIsOpen = true;
 
         input = new EditText(this);
         input.setId(1);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setTransformationMethod(PasswordTransformationMethod.getInstance());
 
-        final AlertDialog d = new AlertDialog.Builder(this)
+        d = new AlertDialog.Builder(this)
                 .setTitle("Change Format")
                 .setMessage("Enter the password")
                 .setView(input)
@@ -222,7 +230,11 @@ public class MainActivity extends Activity {
                             public void onClick(DialogInterface d, int which) {
                             }
                         })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("Cancel",
+                        new Dialog.OnClickListener() {
+                            public void onClick(DialogInterface d, int which) {
+                            }
+                        })
                 .create();
         d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 //        input.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -288,47 +300,49 @@ public class MainActivity extends Activity {
     @Override
     public void onPause() {
         super.onPause();
-        SharedPreferences setting = getSharedPreferences("Setting", 0);
-        SharedPreferences.Editor editorSetting = setting.edit();
 
-        editorSetting.putString("etDir", etDir.getText().toString());
-        if (dialogPassIsOpen) {
-            editorSetting.putBoolean("dialogPassIsOpen", true);
-            editorSetting.putString("etInput", input.getText().toString());
-            editorSetting.commit();
-        }
-        else {
-            editorSetting.putBoolean("dialogPassIsOpen", false);
-            editorSetting.commit();
-        }
-
-
-        editorSetting.commit();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        SharedPreferences setting = getSharedPreferences("Setting", 0);
-        SharedPreferences.Editor editorSetting = setting.edit();
-
-        dialogPassIsOpen = setting.getBoolean("dialogPassIsOpen", false);
-        if (dialogPassIsOpen) {
-            btnLockClicked();
-            input.setText(setting.getString("etInput", ""));
-        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
+        SharedPreferences setting = getSharedPreferences("Setting", 0);
+        SharedPreferences.Editor editorSetting = setting.edit();
+
+        editorSetting.putString("etDir", etDir.getText().toString());
+
+        editorSetting.commit();
     }
 
+
+    protected void onSaveInstanceState(Bundle icicle) {
+        super.onSaveInstanceState(icicle);
+        if (d.isShowing()) {
+            icicle.putBoolean("dialogPassIsOpen", true);
+            icicle.putString("etInput", input.getText().toString());
+        }
+        else {
+            icicle.putBoolean("dialogPassIsOpen", false);
+        }
+
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
+
+
 
 }
