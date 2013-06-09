@@ -4,6 +4,7 @@
 package com.hister.changeformat;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -20,6 +21,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -35,7 +37,7 @@ public class MainActivity extends Activity {
     String nameFolder;
     int pass;
     int enteredPass;
-
+    boolean dialogPassIsOpen;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,6 +97,7 @@ public class MainActivity extends Activity {
         etDir = (EditText) findViewById(R.id.etDir);
         btnLock = (Button) findViewById(R.id.btnLock);
         pass = 2304;
+        dialogPassIsOpen = false;
     }
 
 
@@ -197,52 +200,66 @@ public class MainActivity extends Activity {
         }
     }
 
-
+    public EditText input;
     public void btn_Lock(View view) {
+        btnLockClicked();
+    }
 
+    public void btnLockClicked() {
+        dialogPassIsOpen = true;
 
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Change Format");
-        builder.setMessage("Enter the password");
-
-        final EditText input = new EditText(this);
+        input = new EditText(this);
         input.setId(1);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setTransformationMethod(PasswordTransformationMethod.getInstance());
-//        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
-        builder.setView(input);
 
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+        final AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle("Change Format")
+                .setMessage("Enter the password")
+                .setView(input)
+                .setPositiveButton("Ok",
+                        new Dialog.OnClickListener() {
+                            public void onClick(DialogInterface d, int which) {
+                            }
+                        })
+                .setNegativeButton("Cancel", null)
+                .create();
+        d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+//        input.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View v, boolean hasFocus) {
+//                if (hasFocus) {
+//                    d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+//                }
+//            }
+//        });
+        d.show();
 
-            @Override
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String value = input.getText().toString();
-                if (value.equals("")) {
-                    Toast.makeText(MainActivity.this, "You didn't type anything", Toast.LENGTH_LONG).show();
-                    return;
-                }
-                else {
-                    enteredPass = Integer.parseInt(input.getText().toString());
-                    goLock();
-                    return;
-                }
-            }
-        });
-
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                return;
-            }
-        });
-        builder.create().show();
-
-
+        Button theButton = d.getButton(DialogInterface.BUTTON_POSITIVE);
+        theButton.setOnClickListener(new CustomListener(d));
     }
 
-    void goLock() {
+    class CustomListener implements View.OnClickListener {
+        private final Dialog dialog;
+        public CustomListener(Dialog dialog) {
+            this.dialog = dialog;
+        }
+        @Override
+        public void onClick(View v) {
+            String value = input.getText().toString();
+            if (value.equals("")) {
+                Toast.makeText(MainActivity.this, "You didn't type anything", Toast.LENGTH_LONG).show();
+            }
+            else {
+                enteredPass = Integer.parseInt(input.getText().toString());
+                if (operationWasSuccess()) {
+                    dialog.dismiss();
+                }
+            }
+        }
+    }
+
+    boolean operationWasSuccess() {
         if (pass == enteredPass) {
             nameFolder = etDir.getText().toString();
             File sdCard = Environment.getExternalStorageDirectory();
@@ -250,6 +267,7 @@ public class MainActivity extends Activity {
 
             if (!dir.exists()) {
                 Toast.makeText(MainActivity.this, "Folder doesn't exist.", Toast.LENGTH_LONG).show();
+                return false;
             } else {
                 String str = btnLock.getText().toString();
                 if (str.equals(getResources().getString(R.string.lock))) {
@@ -257,22 +275,53 @@ public class MainActivity extends Activity {
                 } else {
                     unLock();
                 }
+                return true;
             }
         }
         else {
             Toast.makeText(MainActivity.this, "PassWord is wrong", Toast.LENGTH_SHORT).show();
+            input.setText("");
+            return false;
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        SharedPreferences setting = getSharedPreferences("Setting", 0);
+        SharedPreferences.Editor editorSetting = setting.edit();
+
+        editorSetting.putString("etDir", etDir.getText().toString());
+        if (dialogPassIsOpen) {
+            editorSetting.putBoolean("dialogPassIsOpen", true);
+            editorSetting.putString("etInput", input.getText().toString());
+            editorSetting.commit();
+        }
+        else {
+            editorSetting.putBoolean("dialogPassIsOpen", false);
+            editorSetting.commit();
+        }
+
+
+        editorSetting.commit();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        SharedPreferences setting = getSharedPreferences("Setting", 0);
+        SharedPreferences.Editor editorSetting = setting.edit();
+
+        dialogPassIsOpen = setting.getBoolean("dialogPassIsOpen", false);
+        if (dialogPassIsOpen) {
+            btnLockClicked();
+            input.setText(setting.getString("etInput", ""));
         }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        SharedPreferences setting = getSharedPreferences("Setting", 0);
-        SharedPreferences.Editor editorSetting = setting.edit();
-
-        editorSetting.putString("etDir", etDir.getText().toString());
-        editorSetting.apply();
-
     }
 
     @Override
