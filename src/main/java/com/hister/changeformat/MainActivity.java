@@ -32,13 +32,15 @@ import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends Activity {
+
     EditText etDir;
     Button btnLock;
     String nameFolder;
     int pass;
     int enteredPass;
     boolean dialogPassIsOpen;
-    public AlertDialog d;
+    public AlertDialog dialogP;
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -107,8 +109,8 @@ public class MainActivity extends Activity {
         etDir = (EditText) findViewById(R.id.etDir);
         btnLock = (Button) findViewById(R.id.btnLock);
         pass = 2304;
+        dialogP = new AlertDialog.Builder(this).create();
     }
-
 
     private void check() {
         boolean isLock = false;
@@ -221,7 +223,7 @@ public class MainActivity extends Activity {
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setTransformationMethod(PasswordTransformationMethod.getInstance());
 
-        d = new AlertDialog.Builder(this)
+        dialogP = new AlertDialog.Builder(this)
                 .setTitle("Change Format")
                 .setMessage("Enter the password")
                 .setView(input)
@@ -236,7 +238,7 @@ public class MainActivity extends Activity {
                             }
                         })
                 .create();
-        d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        dialogP.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 //        input.setOnFocusChangeListener(new View.OnFocusChangeListener() {
 //            @Override
 //            public void onFocusChange(View v, boolean hasFocus) {
@@ -245,10 +247,10 @@ public class MainActivity extends Activity {
 //                }
 //            }
 //        });
-        d.show();
+        dialogP.show();
 
-        Button theButton = d.getButton(DialogInterface.BUTTON_POSITIVE);
-        theButton.setOnClickListener(new CustomListener(d));
+        Button theButton = dialogP.getButton(DialogInterface.BUTTON_POSITIVE);
+        theButton.setOnClickListener(new CustomListener(dialogP));
     }
 
     class CustomListener implements View.OnClickListener {
@@ -322,7 +324,8 @@ public class MainActivity extends Activity {
 
     protected void onSaveInstanceState(Bundle icicle) {
         super.onSaveInstanceState(icicle);
-        if (d.isShowing()) {
+
+        if (dialogP.isShowing()) {
             icicle.putBoolean("dialogPassIsOpen", true);
             icicle.putString("etInput", input.getText().toString());
         }
@@ -342,7 +345,4 @@ public class MainActivity extends Activity {
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
-
-
-
 }
